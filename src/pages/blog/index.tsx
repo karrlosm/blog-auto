@@ -1,3 +1,4 @@
+import { GetStaticProps } from 'next'
 
 import Head from 'next/head'
 import Link from 'next/link'
@@ -6,10 +7,28 @@ import Image from 'next/image'
 import { FiChevronLeft, FiChevronsLeft, FiChevronRight, FiChevronsRight } from 'react-icons/fi'
 
 import thumbImg from '../../../public/images/thumb.png'
-
 import styles from './styles.module.scss'
 
-export default function Blog() {
+
+import { getPrismicClient } from "@/services/prismic";
+import Prismic from '@prismicio/client';
+import { RichText } from 'prismic-dom';
+
+interface PostProps {
+    slug: string | undefined;
+    title: string;
+    description: any;
+    cover: any;
+    updateAt: string;  
+}
+
+interface BlogProps {
+    posts: PostProps[]
+}
+
+export default function Blog({
+    posts
+}: BlogProps) {
     return (
         <>
             <Head>
@@ -17,18 +36,26 @@ export default function Blog() {
             </Head>
             <main className={styles.container}>
                 <div className={styles.posts}>
-                    <Link href={'#!'}>
-                        <div>
-                            <Image
-                                width={720}
-                                height={410}
-                                quality={100}
-                                src={thumbImg} alt={'Post 1'} />
-                            <strong>Post 1</strong>
-                            <time>14 JULHO 2023</time>
-                            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Illum blanditiis dolorum veniam vero excepturi praesentium mollitia aliquam dolor hic omnis, expedita dicta sint ipsa, quasi placeat. Consequatur nisi dicta suscipit.</p>
-                        </div>
-                    </Link>
+                    {posts.map((item) => {
+                        return (
+                            <Link key={item.slug} href={`/blog/${item.slug}`}>
+                                <div>
+                                    <Image
+                                        width={720}
+                                        height={410}
+                                        quality={100}
+                                        style={{objectFit:"cover"}}
+                                        placeholder='blur'
+                                        blurDataURL={'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mPc0JBeDwAFlwIYz3PSBAAAAABJRU5ErkJggg=='}
+                                        src={item.cover} alt={'Post 1'} />
+                                    <strong>{item.title}</strong>
+                                    <time>{item.updateAt}</time>
+                                    <p>{item.description}...</p>
+                                </div>
+                            </Link>
+                        )
+
+                    })}
                     
                     <div className={styles.buttonNavigate}>
                         <div>
@@ -57,6 +84,41 @@ export default function Blog() {
             </main>
         </>
     )
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+    const prismic = getPrismicClient();
+
+    const response = await prismic.query([
+        Prismic.Predicates.at('document.type', 'post')
+    ], {
+        orderings: '[document.last_publication_date desc]', //Ordenar pelo mais recente
+        fetch: ['post.title', 'post.description', 'post.cover'],
+        pageSize: 2
+    })
+
+    const posts = response.results.map((post) => {
+        return {
+            slug: post.uid,
+            title: RichText.asText(post.data.title),
+            description: post.data.description.find((item: any) => item.type === 'paragraph').text ?? '',
+            cover: post.data.cover.url,
+            updateAt: new Date(post.last_publication_date as string).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+            }),
+        };
+    })
+
+    console.log(posts)
+
+    return {
+        props: {
+            posts
+        },
+        revalidate: 60 * 30,
+      }
 }
 
 
