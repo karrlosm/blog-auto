@@ -6,7 +6,6 @@ import Image from 'next/image'
 
 import { FiChevronLeft, FiChevronsLeft, FiChevronRight, FiChevronsRight } from 'react-icons/fi'
 
-import thumbImg from '../../../public/images/thumb.png'
 import styles from './styles.module.scss'
 
 
@@ -74,8 +73,6 @@ export default function Blog({
 
         setCurrentPage(pageNumber)
         setPostsList(getPosts);
-        
-        console.log('getPosts', getPosts)
 
     };
 

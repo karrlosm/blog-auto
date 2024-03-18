@@ -26,7 +26,6 @@ interface HomeProps {
 
 export default function Home({ content }: HomeProps) {
 
-  console.log(content);
   return (
     <>
       <Head>
