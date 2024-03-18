@@ -13,6 +13,7 @@ import styles from './styles.module.scss'
 import { getPrismicClient } from "@/services/prismic";
 import Prismic from '@prismicio/client';
 import { RichText } from 'prismic-dom';
+import { useState } from 'react'
 
 interface PostProps {
     slug: string | undefined;
@@ -23,12 +24,61 @@ interface PostProps {
 }
 
 interface BlogProps {
-    posts: PostProps[]
+    posts: PostProps[];
+    page: string;
+    totalPage: string;
 }
 
 export default function Blog({
-    posts
+    posts, page, totalPage,
 }: BlogProps) {
+
+    const [postsList, setPostsList] = useState(posts);
+    const [currentPage, setCurrentPage] = useState(Number(page));
+
+    // buscar posts
+    async function reqPost(pageNumber: number) {
+        const prismic = getPrismicClient();
+
+        const response = await prismic.query([
+            Prismic.Predicates.at('document.type', 'post')
+        ], {
+            orderings: '[document.last_publication_date desc]', //Ordenar pelo mais recente
+            fetch: ['post.title', 'post.description', 'post.cover'],
+            pageSize: 1,
+            page: String(pageNumber),
+        })
+
+        return response;
+    }
+
+    async function navigatePage(pageNumber: number) {
+        const response = await reqPost(pageNumber)
+
+        
+        if (response.results.length === 0) return;
+        
+        const getPosts = response.results.map((post) => {
+            return {
+                slug: post.uid,
+                title: RichText.asText(post.data.title),
+                description: post.data.description.find((item: any) => item.type === 'paragraph').text ?? '',
+                cover: post.data.cover.url,
+                updateAt: new Date(post.last_publication_date as string).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                }),
+            };
+        })
+
+        setCurrentPage(pageNumber)
+        setPostsList(getPosts);
+        
+        console.log('getPosts', getPosts)
+
+    };
+
     return (
         <>
             <Head>
@@ -36,7 +86,7 @@ export default function Blog({
             </Head>
             <main className={styles.container}>
                 <div className={styles.posts}>
-                    {posts.map((item) => {
+                    {postsList.map((item) => {
                         return (
                             <Link key={item.slug} href={`/blog/${item.slug}`}>
                                 <div>
@@ -58,27 +108,31 @@ export default function Blog({
                     })}
                     
                     <div className={styles.buttonNavigate}>
-                        <div>
-                            <button>
-                                <FiChevronsLeft
-                                    size={25} color='#fff' />
-                            </button>
-                            <button>
-                                <FiChevronLeft
-                                    size={25} color='#fff' />
-                            </button>
-                        </div>
+                        {currentPage >= 2 && (
+                            <div>
+                                <button onClick={() => navigatePage(1)}>
+                                    <FiChevronsLeft
+                                        size={25} color='#fff' />
+                                </button>
+                                <button onClick={() => navigatePage(currentPage - 1)}>
+                                    <FiChevronLeft
+                                        size={25} color='#fff' />
+                                </button>
+                            </div>
+                        )}
 
-                        <div>
-                            <button>
-                                <FiChevronsRight
-                                    size={25} color='#fff' />
-                            </button>
-                            <button>
-                                <FiChevronRight
-                                    size={25} color='#fff' />
-                            </button>
-                        </div>
+                        {currentPage < Number(totalPage) && (
+                            <div>
+                                <button onClick={() => navigatePage(currentPage + 1)}>
+                                    <FiChevronRight
+                                        size={25} color='#fff' />
+                                </button>
+                                <button onClick={() => navigatePage(Number(totalPage))}>
+                                    <FiChevronsRight
+                                        size={25} color='#fff' />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
@@ -94,7 +148,7 @@ export const getStaticProps: GetStaticProps = async () => {
     ], {
         orderings: '[document.last_publication_date desc]', //Ordenar pelo mais recente
         fetch: ['post.title', 'post.description', 'post.cover'],
-        pageSize: 2
+        pageSize: 1,
     })
 
     const posts = response.results.map((post) => {
@@ -111,11 +165,11 @@ export const getStaticProps: GetStaticProps = async () => {
         };
     })
 
-    console.log(posts)
-
     return {
         props: {
-            posts
+            posts,
+            page: response.page,
+            totalPage: response.total_pages,
         },
         revalidate: 60 * 30,
       }
