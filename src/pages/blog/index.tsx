@@ -76,6 +76,7 @@ export default function Blog({
 
     };
 
+
     return (
         <>
             <Head>
