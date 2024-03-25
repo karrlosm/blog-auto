@@ -13,8 +13,18 @@
     display: flex;
     align-items: center;
 
+    .wrapperLogo {
+        display: flex;
+        justify-content: start;
+        align-items: start;
+        height: 5rem;
+        width: 180px;
+    }
+
     img {
         cursor: pointer;
+        height: 5rem;
+        width: 100%;
     }
 
     nav {

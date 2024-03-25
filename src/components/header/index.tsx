@@ -1,17 +1,18 @@
 
 import styles from './styles.module.scss';
 import Image from 'next/image';
-import Logo from '@/../public/images/logo.svg';
-import Link from 'next/link';
+import Logo from '@/../public/images/logo.jpg';
 import { ActiveLink } from '../active-link';
 
 export function Header() {
     return (
         <header className={styles.headerContainer}>
             <div className={styles.headerContent}>
-                <a href="/">
-                    <Image src={Logo} alt={'Logo header'} />
-                </a>
+                <div className={styles.wrapperLogo}>
+                    <a href="/">
+                        <Image src={Logo} alt={'Logo header'} />
+                    </a>
+                </div>
 
                 <nav>
                     <ActiveLink
